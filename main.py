@@ -3,7 +3,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 import xmlrpc.client
-from Keyboards.Keyboard import start_keyboard, lead_keyboard, registration_keyboard, socialMedia_keyboard, skip_keyboard, yes_no_keyboard, ReplyKeyboardRemove 
+from Keyboards.Keyboard import start_keyboard, lead_keyboard, registration_keyboard, socialMedia_keyboard, skip_keyboard, yes_no_keyboard, cancel_keyboard, setting_keyboard, ReplyKeyboardRemove 
 from DataBaseReader import cursor, conn
 import re
 from datetime import datetime
@@ -17,7 +17,7 @@ url = 'https://artlight.odoo.com/'
 db = "artlight"
 username = 'nich.dima2020@gmail.com'
 password = 'admin'
-
+admin_password = 'testPassword'
 class AuthStates(StatesGroup):
     waiting_for_name = State()
     waiting_for_email = State()
@@ -26,19 +26,23 @@ class AuthStates(StatesGroup):
 class OfferState(StatesGroup):
     waiting_for_name_of_offer = State()
 
-last_created_lead_id = 0
-user_states = {}
+class AdminPasswordState(StatesGroup):
+    waiting_for_admin_password = State()
 
 
-cursor.execute("SELECT * FROM Customers")
-rows = cursor.fetchall()
-for row in rows:
-    print(row)
+#user_states = {}
+
+
+# cursor.execute("SELECT * FROM Users")
+# rows = cursor.fetchall()
+# for row in rows:
+#     print(row)
+
 
 #створити лід
 def create_lead(lead_description, chat_id):
     uid, models = connect_to_odoo(url, db, username, password)
-    cursor.execute("SELECT * FROM Customers WHERE chat_id = ?", (chat_id,))
+    cursor.execute("SELECT * FROM Users WHERE chat_id = ?", (chat_id,))
     data = cursor.fetchall()
     name = str(data[0][1])
     phone = str(data[0][2])
@@ -47,16 +51,18 @@ def create_lead(lead_description, chat_id):
         'contact_name': name,#name,
         'phone': phone,#phone,
         'mobile':'Telegram',
-    }
+        'user_id': 2
+    }  
     lead_id = models.execute_kw(db, uid, password, 'crm.lead', 'create', [lead_data])
     return lead_id
 
 
+#Команда /start
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
         telegram_id = message.from_user.id
         cursor.execute(
-            "SELECT chat_id FROM Customers WHERE chat_id = ?", (telegram_id,))
+            "SELECT chat_id FROM Users WHERE chat_id = ?", (telegram_id,))
         result = cursor.fetchone()
         if result is not None and result[0]:
             await message.answer("Головне меню:", reply_markup=start_keyboard)
@@ -64,8 +70,9 @@ async def start(message: types.Message):
             await message.answer("Ви ще не зареєстровані. Будь ласка, нажміть кнопку зареєструватись", reply_markup=registration_keyboard)
     #await bot.send_message(chat_id=message.from_user.id,text="Привіт, це бот РВК Артлайт.",reply_markup=start_keyboard)
 
+
 #Видаленя ліда
-@dp.callback_query_handler(lambda query: query.data == 'delete_message')
+@dp.callback_query_handler(lambda query: query.data == 'delete_lead')
 async def process_callback_delete_message(callback_query: types.CallbackQuery):
     uid, models = connect_to_odoo(url, db, username, password)
     await bot.edit_message_text(text=callback_query.message.text,
@@ -74,8 +81,18 @@ async def process_callback_delete_message(callback_query: types.CallbackQuery):
     
     @dp.callback_query_handler(lambda query: query.data == 'yes')
     async def accept_delete(callback_query: types.CallbackQuery):
+        if models.execute_kw(db, uid, password,
+                            'crm.lead', 'search_count',
+                            [[['id', '=', int(callback_query.message.text.split(' ')[1])]]])==0:
+            await bot.edit_message_text(text="Видалено ❌\n" + callback_query.message.text,
+                                chat_id=callback_query.message.chat.id,
+                                 message_id=callback_query.message.message_id)
+            await bot.send_message(chat_id=callback_query.message.chat.id,
+                                   text=f"❗Замовлення з ID {callback_query.message.text.split(' ')[1]} не знайдено або видалено.")
+            return
+        
         models.execute_kw(db, uid, password, 'crm.lead', 'unlink', [[int(callback_query.message.text.split(' ')[1])]])
-        await bot.send_message(chat_id=callback_query.message.chat.id, text=f"Замовлення з ID {callback_query.message.text.split(' ')[1]} видалено!")
+        await bot.send_message(chat_id=callback_query.message.chat.id, text=f"❗Замовлення з ID {callback_query.message.text.split(' ')[1]} видалено!")
         await bot.edit_message_text(text="Видалено ❌\n" + callback_query.message.text,
                                 chat_id=callback_query.message.chat.id,
                                  message_id=callback_query.message.message_id)
@@ -90,32 +107,74 @@ async def process_callback_delete_message(callback_query: types.CallbackQuery):
 #Обробка повідомлень
 @dp.message_handler(content_types=types.ContentTypes.TEXT)
 async def process_user_input(message: types.Message):
+    
+    if message.text == "Зареєструватись":
+        await message.answer("Вітаємо! Введіть своє ім'я.📝",reply_markup=ReplyKeyboardRemove())
+        await AuthStates.waiting_for_name.set()
+
+    if message.text == "Створити замовлення":
+        await bot.send_message(chat_id=message.from_user.id, text="Введіть коротке описання замовлення📝:", reply_markup=cancel_keyboard)
+        await OfferState.waiting_for_name_of_offer.set()
+
     if message.text == "Мої замовлення":
         leads = search_leads_by_phone_number(message.from_user.id)
         if leads:
             for lead in leads:
-                temp = f"ID: {lead['id']} \nОпис замовлення: {lead['name']}.\nВаший менеджер: {lead['user_id'][1]}.\nДата створення: {lead['create_date']}"
+                temp = (f"ID: {lead['id']} "
+                        f"\nОпис замовлення: {lead['name']}."
+                        f"\nВаший менеджер: {lead['user_id'][1]}."
+                        f"\nДата створення: {lead['create_date']}.")
                 await bot.send_message(chat_id=message.from_user.id, text=temp, reply_markup=lead_keyboard)
         else:
-            await bot.send_message(chat_id=message.from_user.id,text="Ваший список замовлень пустий!")
-   
-    if message.text == "Зареєструватись":
-        await message.answer("Вітаємо! Введіть своє ім'я.")
-        await AuthStates.waiting_for_name.set()
-    if message.text == "Створити замовлення":
-        await bot.send_message(chat_id=message.from_user.id, text="Введіть коротке описання замовлення.", reply_markup=ReplyKeyboardRemove())
-        await OfferState.waiting_for_name_of_offer.set()
+            await bot.send_message(chat_id=message.from_user.id,text="❗Ваший список замовлень пустий!")
+
+    if message.text == "Налаштування":
+        await bot.send_message(chat_id=message.from_user.id, text='Меню налаштувань 🛠️:', reply_markup = setting_keyboard)
+
+    if message.text == "Назад":
+        await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
+        await message.answer("Головне меню:", reply_markup=start_keyboard)
+
+    if message.text == "Розробник":
+        await message.answer("🧑‍💻Контакт розробника: @DimaYenich", reply_markup=start_keyboard)
+
+    if message.text == "Увійти як адмін":
+        await message.answer("Введіть пароль від адмін панелі 🔏: ",reply_markup=cancel_keyboard)
+        await AdminPasswordState.waiting_for_admin_password.set()
+
+
+@dp.message_handler(state=AdminPasswordState.waiting_for_admin_password)
+async def get_admin_password(message: types.Message, state: FSMContext):
+    if message.text != 'Скасувати':
+        if message.text == admin_password:
+            await bot.send_message(chat_id=message.from_user.id, text='Вхід в адмін-панель виконаний ✅', reply_markup=setting_keyboard)
+            await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
+            await state.finish()
+        else:
+            await bot.send_message(chat_id=message.from_user.id, text='Пароль не вірний ❌', reply_markup=setting_keyboard)
+            await state.finish()
+    else:
+        await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
+        await bot.send_message(chat_id=message.from_user.id, text='Меню налаштувань 🛠️:', reply_markup=setting_keyboard)
+        await state.finish()
 
 
 #Кнопка створити замовлення
 @dp.message_handler(state=OfferState.waiting_for_name_of_offer)
 async def process_offer(message: types.Message, state: FSMContext):
-    await state.update_data(name=message.text)
-    await message.answer(text="Дякую, Ваше замовлення прийнято!"
-                         "Очікуйте дзвінок від менеджера для підтвердження та уточнення інформції!\n\nВи можете керувати своїми замовленями в категорії 'Мої замовлення'.", reply_markup=start_keyboard)
-    await OfferState.waiting_for_name_of_offer.set()
-    create_lead(message.text, message.from_user.id)
-    await state.finish()
+    if message.text != 'Скасувати':
+        await state.update_data(name=message.text)
+        await message.answer(text="✅Дякую, Ваше замовлення прийнято!\n\n"
+                            "📞Очікуйте дзвінок від менеджера для підтвердження та уточнення інформції!\n\nℹ️Ви можете керувати своїми замовленями в категорії 'Мої замовлення'.", reply_markup=start_keyboard)
+        await OfferState.waiting_for_name_of_offer.set()
+        create_lead(message.text, message.from_user.id)
+        await state.finish()
+    else:
+        await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
+        await message.answer(text="Створення замовлення відмінено ❌",reply_markup=start_keyboard)
+        await state.finish()
+        await state.finish()
+        return
 
 
 ##Реєстрація початок >
@@ -131,9 +190,9 @@ async def process_phone(message: types.Message, state: FSMContext):
     if validate_phone_number(message.text):
         await state.update_data(phone=message.text)
         await AuthStates.waiting_for_email.set()   
-        await bot.send_message(message.from_user.id, "Введіть електрону пошту (необов'язково).", reply_markup=skip_keyboard) 
+        await bot.send_message(message.from_user.id, "Введіть електрону пошту (необов'язково)📧:", reply_markup=skip_keyboard) 
     else:
-        await bot.send_message(chat_id=message.from_user.id, text="Номер телефону введено некоректно! Спробуйте ще раз.")
+        await bot.send_message(chat_id=message.from_user.id, text="Номер телефону введено некоректно!❌📞\nСпробуйте ще раз.")
         await AuthStates.waiting_for_phone.set()
 
 
@@ -145,6 +204,7 @@ async def process_email(message: types.Message, state: FSMContext):
 
     if message.text == 'Пропустити':
         await finish_registration(message, state, name, phone)
+        await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
         return
     await state.update_data(email=message.text)
     await message.answer("Email додано!", reply_markup=start_keyboard)
@@ -162,7 +222,7 @@ def search_manager_list():
 
 #Список лідів
 def search_leads_by_phone_number(chat_id):
-    cursor.execute("SELECT number FROM Customers WHERE chat_id = ?", (chat_id,))
+    cursor.execute("SELECT number FROM Users WHERE chat_id = ?", (chat_id,))
     result = cursor.fetchone()
     if result:
         phone_number = result[0]
@@ -179,24 +239,27 @@ def connect_to_odoo(url, db, username, password):
     return uid, models
 
 
+#Завершення реєстрації
 async def finish_registration(message, state, name, phone, email=None):
-    await message.answer("Дякуємо за реєстрацію!", reply_markup=start_keyboard)
+    await message.answer("Дякуємо за реєстрацію! 🙏", reply_markup=start_keyboard)
     await message.answer("Слідкуй за нами в соціальних мережах! 👇", reply_markup=socialMedia_keyboard)
 
     if email:
-        cursor.execute("INSERT INTO Customers (name, number, email, chat_id) VALUES (?, ?, ?, ?)", (name, phone, email, message.from_user.id))
+        cursor.execute("INSERT INTO Users (name, number, email, chat_id) VALUES (?, ?, ?, ?)", (name, phone, email, message.from_user.id))
     else:
-        cursor.execute("INSERT INTO Customers (name, number, chat_id) VALUES (?, ?, ?)", (name, phone, message.from_user.id))
+        cursor.execute("INSERT INTO Users (name, number, chat_id) VALUES (?, ?, ?)", (name, phone, message.from_user.id))
     conn.commit()
     await state.finish()
 
+
+#Провірка номеру телефону
 def validate_phone_number(phone):
     pattern = r'^(\+?380|\b0)(\d{2})(\d{7})$'
     if re.match(pattern, phone):
         return True
     else:
         return False
-
+    
 
 if __name__ == "__main__":
     executor.start_polling(dp, skip_updates=True)
