@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS Users (
     number INTEGER NOT NULL,
     email TEXT,
     chat_id TEXT NOT NULL,
-    isAdmin Bool
+    isAdmin INTEGER NOT NULL,
+    isManager INTEGER NOT NULL
 );
 """)
