@@ -17,3 +17,14 @@ button_view_manager = InlineKeyboardButton(text='Переглянути замо
 button_about_manager = InlineKeyboardButton(text='Дані менеджера 📃', callback_data='manager_about')
 button_back_to_managers = InlineKeyboardButton(text='Назад ⬅️', callback_data='manager_back')
 manager_admin_settings = InlineKeyboardMarkup(row_width=1).add(button_view_manager, button_about_manager, button_back_to_managers)
+
+
+#manage leads
+async def create_inline_keyboard(users):
+    manager_list = InlineKeyboardMarkup(row_width=1)
+    for user in users:  
+        button_text = user['name'] 
+        callback_data = 'button_'+str(user['id'])+f'_{user["name"]}'
+        button = InlineKeyboardButton(text=button_text, callback_data=callback_data)
+        manager_list.add(button)
+    return manager_list
