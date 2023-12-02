@@ -1,10 +1,11 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 
 #main keyboard
+button_chat_with_manager = KeyboardButton('Чат з менеджером')
 button_create_lead = KeyboardButton('Створити замовлення')
 button_leads_list = KeyboardButton('Мої замовлення')
 button_settings = KeyboardButton('Налаштування')
-start_keyboard = ReplyKeyboardMarkup(resize_keyboard=True).add(button_leads_list).insert(button_create_lead).add(button_settings)
+start_keyboard = ReplyKeyboardMarkup(resize_keyboard=True).add('Чат з менеджером').add(button_leads_list).insert(button_create_lead).add(button_settings)
 
 #registration keyboard
 button_registration = KeyboardButton('Зареєструватись')

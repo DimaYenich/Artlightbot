@@ -1,7 +1,6 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters import Command
-from DataBaseReader import cursor
+from db import get_user_data
 from Keyboards.UserKeyboard import lead_keyboard, yes_no_keyboard, start_keyboard
 from States.states import OfferState  
 from main import connect_to_odoo, url, db, username, password
@@ -10,16 +9,17 @@ from main import dp, bot
 #створити лід - user
 def create_lead(lead_description, chat_id):
     uid, models = connect_to_odoo(url, db, username, password)
-    cursor.execute("SELECT * FROM Users WHERE chat_id = ?", (chat_id,))
-    data = cursor.fetchall()
-    name = str(data[0][1])
-    phone = str(data[0][2])
+    data = get_user_data(chat_id)
+    name = str(data[1])
+    phone = str(data[2])
+    email = str(data[3])
     lead_data = {
         'name': lead_description,
-        'contact_name': name,#name,
-        'phone': phone,#phone,
+        'contact_name': name,
+        'phone': phone,
+        'email_from':email,
         'mobile':'Telegram',
-        'user_id': 2
+        'user_id': 6
     }  
     lead_id = models.execute_kw(db, uid, password, 'crm.lead', 'create', [lead_data])
     return lead_id

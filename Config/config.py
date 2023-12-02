@@ -1,9 +1,6 @@
 from dotenv import load_dotenv, find_dotenv
 from aiogram import Bot, Dispatcher
-from aiogram.types import ReplyKeyboardRemove
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-import xmlrpc.client
-import re
 import os
 
 load_dotenv(find_dotenv())

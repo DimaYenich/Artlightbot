@@ -12,15 +12,15 @@ button_managers = KeyboardButton('Керувати замовленнями')
 button_back = KeyboardButton('Назад')
 admin_settings_keyboard = ReplyKeyboardMarkup(resize_keyboard=True).add(button_exit_admin).add(button_developer).add(button_managers).add(button_back)
 
-#Замовлення менеджера 
-button_view_manager = InlineKeyboardButton(text='Переглянути замовлення', callback_data= 'manager_orders')
-button_about_manager = InlineKeyboardButton(text='Дані менеджера 📃', callback_data='manager_about')
-button_back_to_managers = InlineKeyboardButton(text='Назад ⬅️', callback_data='manager_back')
-manager_admin_settings = InlineKeyboardMarkup(row_width=1).add(button_view_manager, button_about_manager, button_back_to_managers)
+# #Замовлення менеджера 
+# button_view_manager = InlineKeyboardButton(text='Переглянути замовлення', callback_data= 'manager_orders')
+# button_about_manager = InlineKeyboardButton(text='Дані менеджера 📃', callback_data='manager_about')
+# button_back_to_managers = InlineKeyboardButton(text='Назад ⬅️', callback_data='manager_back')
+# manager_admin_settings = InlineKeyboardMarkup(row_width=1).add(button_view_manager, button_about_manager, button_back_to_managers)
 
 
 #manage leads
-async def create_inline_keyboard(users):
+async def create_list_of_managers_keyboard(users):
     manager_list = InlineKeyboardMarkup(row_width=1)
     for user in users:  
         button_text = user['name'] 
@@ -28,3 +28,12 @@ async def create_inline_keyboard(users):
         button = InlineKeyboardButton(text=button_text, callback_data=callback_data)
         manager_list.add(button)
     return manager_list
+
+
+    
+async def create_manager_keyboard(user_id, user_name):
+    button_view_manager = InlineKeyboardButton(text='Переглянути замовлення', callback_data= f'manager_orders_{user_id}_{user_name}')
+    button_about_manager = InlineKeyboardButton(text='Дані менеджера 📃', callback_data=f'manager_about_{user_id}_{user_name}')
+    button_back_to_managers = InlineKeyboardButton(text='Назад ⬅️', callback_data=f'manager_back')
+    manager_admin_settings = InlineKeyboardMarkup(row_width=1).add(button_view_manager, button_about_manager, button_back_to_managers)
+    return manager_admin_settings
