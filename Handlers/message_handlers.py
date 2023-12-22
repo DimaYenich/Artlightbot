@@ -2,7 +2,8 @@ from aiogram import types
 from aiogram.types import ReplyKeyboardRemove 
 from Config.config import dp, bot
 from States.states import AuthStates, AdminPasswordState, OfferState
-from Utils.utils import is_admin, search_manager_list, search_leads_by_phone_number
+from Utils.utils import is_admin 
+from Odoo.odoo import search_manager_list, search_leads
 from Keyboards.AdminKeyboard import admin_settings_keyboard, exit_admin_keyboard, create_list_of_managers_keyboard
 from Keyboards.UserKeyboard import start_keyboard, cancel_keyboard, setting_keyboard, lead_keyboard
 from db import get_user_data
@@ -13,16 +14,16 @@ async def process_user_input(message: types.Message):
     text = message.text
     match text:
         case "Зареєструватись": 
-            await ((message.answer("Вітаємо! Введіть своє ім'я.📝", reply_markup=ReplyKeyboardRemove())
+            ((await message.answer("Вітаємо! Введіть своє ім'я.📝", reply_markup=ReplyKeyboardRemove())
             and await AuthStates.waiting_for_name.set()) if text == "Зареєструватись" and not get_user_data(message.from_user.id)
-                                                            else message.answer("Ви вже зареєстровані!"))
+                                                            else await message.answer("Ви вже зареєстровані!"))
 
         case "Створити замовлення":
             await OfferState.waiting_for_name_of_offer.set()
             await bot.send_message(chat_id=message.from_user.id, text="Введіть коротке описання замовлення📝:", reply_markup=cancel_keyboard)
 
         case "Мої замовлення":
-            leads = search_leads_by_phone_number(message.from_user.id)
+            leads = search_leads(message.from_user.id)
             if leads:
                 for lead in leads:
                     temp = (f"ID: {lead['id']} "
@@ -56,7 +57,7 @@ async def process_user_input(message: types.Message):
 
         case "Керувати замовленнями" if is_admin(message.from_user.id):
             users = search_manager_list()
-            manager_keyboard = await create_list_of_managers_keyboard(users)
+            manager_keyboard = await create_list_of_managers_keyboard(users, False, False)
             await bot.send_message(chat_id=message.from_user.id, text="Оберіть менеджера ⬇️", reply_markup=manager_keyboard)
 
         case _:

@@ -1,56 +1,92 @@
 from aiogram import types
 from aiogram.dispatcher import FSMContext
-from db import get_user_data
+from Odoo.odoo import create_lead, update_lead_manager
 from Keyboards.UserKeyboard import lead_keyboard, yes_no_keyboard, start_keyboard
+from Keyboards.AdminKeyboard import create_list_of_managers_keyboard
 from States.states import OfferState  
-from main import connect_to_odoo, url, db, username, password
-from main import dp, bot
+from Config.config import url, db, username, password
+from Config.config import dp, bot
+from Odoo.odoo import uid, models
+from Odoo.odoo import search_manager_list
 
-#створити лід - user
-def create_lead(lead_description, chat_id):
-    uid, models = connect_to_odoo(url, db, username, password)
-    data = get_user_data(chat_id)
-    name = str(data[1])
-    phone = str(data[2])
-    email = str(data[3])
-    lead_data = {
-        'name': lead_description,
-        'contact_name': name,
-        'phone': phone,
-        'email_from':email,
-        'mobile':'Telegram',
-        'user_id': 6
-    }  
-    lead_id = models.execute_kw(db, uid, password, 'crm.lead', 'create', [lead_data])
-    return lead_id
 
 #Подія кнопка створити замовлення - user
 @dp.message_handler(state=OfferState.waiting_for_name_of_offer)
 async def process_offer(message: types.Message, state: FSMContext):
     if message.text != 'Скасувати':
         await state.update_data(name=message.text)
-        await message.answer(text="✅Дякую, Ваше замовлення прийнято!\n\n"
-                            "📞Очікуйте дзвінок від менеджера для підтвердження та уточнення інформції!\n\nℹ️Ви можете керувати своїми замовленями в категорії 'Мої замовлення'.", reply_markup=start_keyboard)
+        
         await OfferState.waiting_for_name_of_offer.set()
-        create_lead(message.text, message.from_user.id)
-        await state.finish()
+        await bot.send_message(chat_id=message.from_user.id,
+                               text="🧑‍💼Оберіть свого менеджера:",
+                               reply_markup=await create_list_of_managers_keyboard(search_manager_list(), True, False))
+        await OfferState.waiting_for_manager.set()
     else:
-        await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
-        await message.answer(text="Створення замовлення відмінено ❌",reply_markup=start_keyboard)
+        await bot.delete_message(chat_id=message.from_user.id,
+                                  message_id=message.message_id)
+        await message.answer(text="Створення замовлення відмінено ❌",
+                             reply_markup=start_keyboard)
         await state.finish()
-        return
 
-#Видаленя ліда - user
+
+#Вибір менеджера при створені
+@dp.callback_query_handler(lambda query: query.data.startswith('button_'), state=OfferState.waiting_for_manager)
+async def select_manager(callback_query: types.CallbackQuery, state: FSMContext):
+    if callback_query.data != 'button_cancel':
+        manager_id = callback_query.data.split('_')[1]
+        state_data = await state.get_data()
+        name_of_lead = state_data.get('name')
+        create_lead(name_of_lead, callback_query.from_user.id, manager_id)
+        await state.finish()
+        await bot.send_message(chat_id=callback_query.from_user.id,
+                                text="✅Дякую, Ваше замовлення прийнято!"
+                                     "\n\n📞Очікуйте дзвінок від менеджера для підтвердження та уточнення інформції!"
+                                     "\n\n ℹ️Ви можете керувати своїми замовленями в категорії 'Мої замовлення'.",
+                               reply_markup=start_keyboard)
+        await bot.delete_message(chat_id=callback_query.from_user.id,
+                                 message_id=callback_query.message.message_id)
+    else:
+        await bot.send_message(chat_id=callback_query.from_user.id,
+                               text="Створення замовлення відмінено ❌",
+                               reply_markup=start_keyboard)
+        await bot.delete_message(chat_id=callback_query.from_user.id,
+                                 message_id=callback_query.message.message_id)
+        await state.finish()
+
+
+#Натиснення кнопки "Видалити замовлення" та вивід підтвердження 
 @dp.callback_query_handler(lambda query: query.data == 'delete_lead')
 async def process_callback_delete_message(callback_query: types.CallbackQuery):
     await bot.edit_message_text(text=callback_query.message.text,
                                 chat_id=callback_query.message.chat.id,
-                                 message_id=callback_query.message.message_id, reply_markup=yes_no_keyboard)
+                                message_id=callback_query.message.message_id, reply_markup=yes_no_keyboard)
 
-#обробка підтвердження видалення - user
-@dp.callback_query_handler(lambda query: query.data.startswith('delete_'))
+#заміна менеджера в ліді
+@dp.callback_query_handler(lambda query: query.data.startswith('changeManager_'))
+async def process_callback_delete_message(callback_query: types.CallbackQuery):
+    if callback_query.data.split('_')[1]=='cancel':
+        await bot.edit_message_text(text=callback_query.message.text,
+                                 chat_id=callback_query.from_user.id,
+                                 message_id=callback_query.message.message_id,
+                                 reply_markup=lead_keyboard)
+        return
+    manager_id = callback_query.data.split('_')[1]
+    manager_name = callback_query.data.split('_')[2]
+    print(callback_query.data)
+    update_lead_manager(int(callback_query.message.text.split(' ')[1]), manager_id)
+    await bot.send_message(chat_id=callback_query.from_user.id,
+                           text=f"✅В замовлені з ID: {callback_query.message.text.split(' ')[1]}\nБуло замінено менеджера на {manager_name}") 
+    await bot.edit_message_text(text=callback_query.message.text,
+                                 chat_id=callback_query.from_user.id,
+                                 message_id=callback_query.message.message_id,
+                                 reply_markup=lead_keyboard)
+    await bot.delete_message(chat_id=callback_query.from_user.id, 
+                             message_id=callback_query.message.message_id)
+        
+
+#Підтвердженян видалення замовлення 
+@dp.callback_query_handler(lambda query: query.data.startswith('delete_')) # delete from Odoo
 async def accept_delete(callback_query: types.CallbackQuery):
-    uid, models = connect_to_odoo(url, db, username, password)
     if(callback_query.data.split('_')[1]=='yes'):
         if models.execute_kw(db, uid, password,
                                 'crm.lead', 'search_count',

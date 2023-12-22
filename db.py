@@ -33,5 +33,5 @@ def get_user_data(chat_id):
 CHANGE_ADMIN_STATUS = "UPDATE Users SET isAdmin = '{admin_status}' WHERE chat_id = '{chat_id}'"
 def change_admin_status(admin_status, chat_id):
     with connection:
-        cursor.execute(CHANGE_ADMIN_STATUS.format(admin_status = admin_status, chat_id=chat_id))
+        cursor.execute(CHANGE_ADMIN_STATUS.format(admin_status=admin_status, chat_id=chat_id))
         connection.commit()

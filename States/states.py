@@ -7,6 +7,7 @@ class AuthStates(StatesGroup):
 
 class OfferState(StatesGroup):
     waiting_for_name_of_offer = State()
+    waiting_for_manager = State()
 
 class AdminPasswordState(StatesGroup):
     waiting_for_admin_password = State()

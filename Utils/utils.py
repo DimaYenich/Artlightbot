@@ -1,42 +1,44 @@
-from Config.config import db, url, username, password 
 from Keyboards.UserKeyboard import start_keyboard, socialMedia_keyboard
 from db import add_new_user, get_user_data
-import xmlrpc.client
 import re
 
-#Список користувачів/менеджерів - services
-def search_manager_list():
-    uid, models = connect_to_odoo(url, db, username, password)
-    # fields_info = models.execute_kw(db, uid, password, models, 'fields_get', [], {'attributes': ['string', 'type']})
-    # for field_name, field_info in fields_info.items():
-    #     print(f"Field Name: {field_name}, Type: {field_info['type']}, Label: {field_info['string']}")
-    user_ids = models.execute_kw(db, uid, password, 'res.users', 'search', [[]])
-    users = models.execute_kw(db, uid, password, 'res.users', 'read', [user_ids], {'fields': ['id', 'name', 'login']})
-    return users
 
-#Список лідів за номером телефону - services
-def search_leads_by_phone_number(chat_id):
-    result = get_user_data(chat_id)
-    if result:
-        phone_number = result[2]
-        uid, models = connect_to_odoo(url, db, username, password)
-        lead_ids = models.execute_kw(db, uid, password, 'crm.lead', 'search', [[['phone', '=', str(phone_number)]]])
-        leads = models.execute_kw(db, uid, password, 'crm.lead', 'read', [lead_ids], {'fields': ['id', 'name', 'phone', 'contact_name','create_date','user_id']})
-        return leads
+def get_user_info_by_id(user_id, contacts):
+    for contact in contacts:
+        if contact['id'] == user_id:
+            user_info = {
+                'name': contact['name'],
+                'phone': contact['phone'] if contact['phone'] else 'No phone number',
+                'email': contact['email'] if contact['email'] else 'No email'
+            }
+            return user_info
 
-#Підключення до Odoo - services
-def connect_to_odoo(url, db, username, password):
-    common = xmlrpc.client.ServerProxy('{}/xmlrpc/2/common'.format(url))
-    uid = common.authenticate(db, username, password, {})
-    models = xmlrpc.client.ServerProxy('{}/xmlrpc/2/object'.format(url))
-    return uid, models
 
-#Завершення реєстрації - services
+#Список лідів за номером телефону - services - to Odoo
+
+
+
+#Завершення реєстрації
 async def finish_registration(message, state, name, phone, email=None):
     await message.answer("Дякуємо за реєстрацію! 🙏", reply_markup=start_keyboard)
     await message.answer("Слідкуй за нами в соціальних мережах! 👇", reply_markup=socialMedia_keyboard)
-    add_new_user(name, phone, email if email else None, message.from_user.id)
+    add_new_user(name, format_phone_number(phone), email if email else None, message.from_user.id)
     await state.finish()
+
+
+def format_phone_number(phone_number):
+    digits = ''.join(filter(str.isdigit, phone_number))
+
+    if len(digits) == 10:
+        formatted_number = '+380 ' + digits[1:3] + ' ' + digits[3:6] + ' ' + digits[6:]
+    elif len(digits) == 12 and digits.startswith('380'):
+        formatted_number = '+380 ' + digits[3:5] + ' ' + digits[5:8] + ' ' + digits[8:]
+    elif len(digits) == 13 and digits.startswith('380'): 
+        formatted_number = '+380 ' + digits[4:6] + ' ' + digits[6:9] + ' ' + digits[9:]
+    else:
+        formatted_number = 'Непідтримуваний формат номеру'
+    return formatted_number
+
 
 #Провірка номеру телефону - services
 def validate_phone_number(phone):
@@ -46,12 +48,6 @@ def validate_phone_number(phone):
     else:
         return False
 
-
-def user_leads(manager_id, manager_name):
-    uid, models = connect_to_odoo(url,db,username, password)
-    lead_ids = models.execute_kw(db, uid, password, 'crm.lead', 'search',[[['user_id', '=', [manager_id, manager_name]]]])
-    leads_info = models.execute_kw(db, uid, password, 'crm.lead', 'read', [lead_ids], {'fields': ['id', 'name', 'phone', 'contact_name','create_date']})
-    return leads_info
 
 #Провірка на адміна - 
 def is_admin(user_id):
