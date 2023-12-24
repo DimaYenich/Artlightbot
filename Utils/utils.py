@@ -3,21 +3,6 @@ from db import add_new_user, get_user_data
 import re
 
 
-def get_user_info_by_id(user_id, contacts):
-    for contact in contacts:
-        if contact['id'] == user_id:
-            user_info = {
-                'name': contact['name'],
-                'phone': contact['phone'] if contact['phone'] else 'No phone number',
-                'email': contact['email'] if contact['email'] else 'No email'
-            }
-            return user_info
-
-
-#Список лідів за номером телефону - services - to Odoo
-
-
-
 #Завершення реєстрації
 async def finish_registration(message, state, name, phone, email=None):
     await message.answer("Дякуємо за реєстрацію! 🙏", reply_markup=start_keyboard)
