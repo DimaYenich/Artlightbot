@@ -3,7 +3,7 @@ from Keyboards.UserKeyboard import start_keyboard
 from Keyboards.AdminKeyboard import create_list_of_managers_keyboard, create_manager_keyboard, keyboard_with_orders
 from db import change_admin_status
 from main import dp, bot
-from Odoo.odoo import search_manager_list, user_leads, search_manager_list, search_leads
+from Odoo.odoo import search_manager_list, user_leads, search_manager_list, search_leads_by_chat_id, lead_by_id
 
 #Вибір менеджера з клавіатури
 @dp.callback_query_handler(lambda query: query.data.startswith('adminButton_'))
@@ -75,7 +75,7 @@ async def confirm_exit_admin(callback_query: types.CallbackQuery):
         await bot.send_message(callback_query.from_user.id, text="Вихід з адмін-панелі виконаний ✅", reply_markup=start_keyboard)
         change_admin_status(0, callback_query.from_user.id)
         
-    
+#керування лідами
 @dp.callback_query_handler(lambda query: query.data.startswith('lead_'))
 async def select_lead(callback_query: types.CallbackQuery):
     users = search_manager_list()
@@ -84,5 +84,5 @@ async def select_lead(callback_query: types.CallbackQuery):
         await bot.edit_message_text(text="Оберіть менеджера ⬇️: ", chat_id=callback_query.from_user.id,
                                         message_id=callback_query.message.message_id,
                                         reply_markup=managers_list_keyboard)
-    print(callback_query.data)
-    print(search_leads(chat_id=callback_query.from_user.id, lead_id=callback_query.data.split('_')[1]))
+    else:
+         print(lead_by_id(callback_query.data.split('_')[1]))

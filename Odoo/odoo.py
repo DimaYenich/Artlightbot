@@ -35,11 +35,10 @@ def create_lead(lead_description, chat_id, manager_id):
 
 #delete
 
-
 #read 
-#Список лідів
-def search_leads(chat_id):
-    result = get_user_data(chat_id)
+#Список лідів по айді телеграм
+def search_leads_by_chat_id(chat_id):
+    result = get_user_data(chat_id)   
     if result:
         phone_number = str(result[2]) 
         domain = [['phone', 'like', '%' + phone_number[-7:]]]  
@@ -48,6 +47,14 @@ def search_leads(chat_id):
         leads = models.execute_kw(db, uid, password, 'crm.lead', 'read', [lead_ids], {'fields': fields})
         return leads
     
+#лід по айді
+def lead_by_id(lead_id):
+    domain = [['id', '=', lead_id]]
+    lead_ids = models.execute_kw(db, uid, password, 'crm.lead', 'search', [domain])
+    fields = ['id', 'name', 'phone', 'contact_name', 'create_date', 'user_id']
+    leads = models.execute_kw(db, uid, password, 'crm.lead', 'read', [lead_ids], {'fields': fields})
+    return leads
+   
 #Список користувачів/менеджерів - services - to Odoo
 def search_manager_list():
     user_ids = models.execute_kw(db, uid, password, 'res.users', 'search', [[]])

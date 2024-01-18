@@ -3,7 +3,7 @@ from aiogram.types import ReplyKeyboardRemove
 from Config.config import dp, bot
 from States.states import AuthStates, AdminPasswordState, OfferState
 from Utils.utils import is_admin 
-from Odoo.odoo import search_manager_list, search_leads
+from Odoo.odoo import search_manager_list, search_leads_by_chat_id
 from Keyboards.AdminKeyboard import admin_settings_keyboard, exit_admin_keyboard, create_list_of_managers_keyboard
 from Keyboards.UserKeyboard import start_keyboard, cancel_keyboard, setting_keyboard, lead_keyboard
 from db import get_user_data
@@ -23,7 +23,7 @@ async def process_user_input(message: types.Message):
             await bot.send_message(chat_id=message.from_user.id, text="Введіть коротке описання замовлення📝:", reply_markup=cancel_keyboard)
 
         case "Мої замовлення":
-            leads = search_leads(message.from_user.id)
+            leads = search_leads_by_chat_id(message.from_user.id)
             if leads:
                 for lead in leads:
                     temp = (f"ID: {lead['id']} "
