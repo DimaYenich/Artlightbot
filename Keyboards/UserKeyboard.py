@@ -1,21 +1,34 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 
 #main keyboard
-button_chat_with_manager = KeyboardButton('Чат з менеджером')
-button_create_lead = KeyboardButton('Створити замовлення')
-button_leads_list = KeyboardButton('Мої замовлення')
-button_settings = KeyboardButton('Налаштування')
-start_keyboard = ReplyKeyboardMarkup(resize_keyboard=True).add('Чат з менеджером').add(button_leads_list).insert(button_create_lead).add(button_settings)
+async def create_main_keyboard(user):
+    button_chat_with_manager = KeyboardButton('Чат з менеджером')
+    button_create_lead = KeyboardButton('Створити замовлення')
+    button_leads_list = KeyboardButton('Мої замовлення')
+    button_settings = KeyboardButton('Налаштування')
+    #start_keyboard = ReplyKeyboardMarkup(resize_keyboard=True).add('Чат з менеджером').add(button_leads_list).insert(button_create_lead).add(button_settings)
+    start_keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    if user[7] == False:
+        start_keyboard.add(button_chat_with_manager)
+    start_keyboard.add(button_leads_list).insert(button_create_lead).add(button_settings)
+    return start_keyboard
+
 
 #registration keyboard
 button_registration = KeyboardButton('Зареєструватись')
 registration_keyboard =ReplyKeyboardMarkup(resize_keyboard=True).add(button_registration) 
 
 #offer keyboard
-button_delete_lead = InlineKeyboardButton(text='Видалити замовлення 🗑️',  callback_data='delete_lead')
-button_change_manager = InlineKeyboardButton(text='Змінити менеджера 🧑‍💼',  callback_data='change_manager')
-lead_keyboard = InlineKeyboardMarkup(row_width=1)
-lead_keyboard.add(button_delete_lead).add(button_change_manager)
+async def create_lead_keyboard(is_admin):
+    button_delete_lead = InlineKeyboardButton(text='Видалити замовлення 🗑️',  callback_data='delete_lead')
+    button_change_manager = InlineKeyboardButton(text='Змінити менеджера 🧑‍💼',  callback_data='change_manager')
+    lead_keyboard = InlineKeyboardMarkup(row_width=1)
+    if is_admin == True:
+        button_back_to_leads = InlineKeyboardButton(text='Назад◀️', callback_data='lead_back')
+        lead_keyboard.add(button_delete_lead).add(button_change_manager).add(button_back_to_leads)
+    else:
+        lead_keyboard.add(button_delete_lead).add(button_change_manager)
+    return lead_keyboard
 
 #Delete lead accept
 butoon_is_sure = InlineKeyboardButton(text='Бажаєте видалити замовлення?', callback_data='none')

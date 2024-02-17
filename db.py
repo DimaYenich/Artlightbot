@@ -11,15 +11,16 @@ CREATE TABLE IF NOT EXISTS Users (
     email TEXT,
     chat_id TEXT NOT NULL,
     isAdmin INTEGER NOT NULL,
-    isManager INTEGER NOT NULL
+    isManager INTEGER NOT NULL,
+    isChating INTEGER NOT NULL
 );
 """)
 
 #додання нового користувача
-ADD_NEW_USER = "INSERT INTO Users (name, number, email, chat_id, isAdmin, isManager) VALUES ('{name}','{number}','{email}','{chat_id}','{isAdmin}','{isManager}')"
+ADD_NEW_USER = "INSERT INTO Users (name, number, email, chat_id, isAdmin, isManager, isChating) VALUES ('{name}','{number}','{email}','{chat_id}','{isAdmin}','{isManager}','{isChating}')"
 def add_new_user(name, number, email, chat_id):
     with connection:
-        cursor.execute(ADD_NEW_USER.format(name=name, number=number, email=email, chat_id=chat_id, isAdmin=0, isManager=0))
+        cursor.execute(ADD_NEW_USER.format(name=name, number=number, email=email, chat_id=chat_id, isAdmin=0, isManager=0, isChating=0))
         connection.commit()
 
 #дані користувача
@@ -34,4 +35,11 @@ CHANGE_ADMIN_STATUS = "UPDATE Users SET isAdmin = '{admin_status}' WHERE chat_id
 def change_admin_status(admin_status, chat_id):
     with connection:
         cursor.execute(CHANGE_ADMIN_STATUS.format(admin_status=admin_status, chat_id=chat_id))
+        connection.commit()
+
+
+CHANGE_CHATING_STATUS = "Update Users set isChating= '{isChating}' WHERE chat_id = '{chat_id}'"
+def change_chating_status(isChating,chat_id):
+    with connection:
+        cursor.execute(CHANGE_CHATING_STATUS.format(isChating=isChating, chat_id=chat_id))
         connection.commit()

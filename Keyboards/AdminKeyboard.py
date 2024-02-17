@@ -2,6 +2,13 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardBut
 from Utils.utils import is_admin
 import random
 
+async def accept_chat_keyboard(message):
+    id = message.from_user.id
+    username = message.from_user.username
+    accept_chat_button = InlineKeyboardButton(text='Прийняти', callback_data=f'accept_chat_button_{id}_{username}')
+    accept_chat_keyboard = InlineKeyboardMarkup(row_width=1).add(accept_chat_button)
+    return accept_chat_keyboard
+
 #Вихід з адмін панелі
 button_exit = InlineKeyboardButton(text='Так', callback_data='confirmExitAdmin_exit')
 button_cancel = InlineKeyboardButton(text='Ні', callback_data='confirmExitAdmin_cancel')
@@ -45,6 +52,7 @@ async def create_manager_keyboard(user_id, user_name):
     button_back_to_managers = InlineKeyboardButton(text='Назад ⬅️', callback_data=f'manager_back')
     manager_admin_settings = InlineKeyboardMarkup(row_width=1).add(button_view_manager, button_about_manager, button_back_to_managers)
     return manager_admin_settings
+
 
 async def keyboard_with_orders(leads):
     orders_list = InlineKeyboardMarkup(row_width=1)

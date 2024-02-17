@@ -1,7 +1,7 @@
 from aiogram import types
-from Keyboards.UserKeyboard import start_keyboard
+from Keyboards.UserKeyboard import create_lead_keyboard, create_main_keyboard
 from Keyboards.AdminKeyboard import create_list_of_managers_keyboard, create_manager_keyboard, keyboard_with_orders
-from db import change_admin_status
+from db import change_admin_status, get_user_data
 from main import dp, bot
 from Odoo.odoo import search_manager_list, user_leads, search_manager_list, search_leads_by_chat_id, lead_by_id
 
@@ -72,7 +72,9 @@ async def confirm_exit_admin(callback_query: types.CallbackQuery):
         await bot.delete_message(callback_query.from_user.id, message_id=callback_query.message.message_id)
 
     if action == 'exit':
-        await bot.send_message(callback_query.from_user.id, text="Вихід з адмін-панелі виконаний ✅", reply_markup=start_keyboard)
+        await bot.send_message(callback_query.from_user.id,
+                               text="Вихід з адмін-панелі виконаний ✅", 
+                               reply_markup=await create_main_keyboard(get_user_data(callback_query.from_user.id)))
         change_admin_status(0, callback_query.from_user.id)
         
 #керування лідами
@@ -85,4 +87,27 @@ async def select_lead(callback_query: types.CallbackQuery):
                                         message_id=callback_query.message.message_id,
                                         reply_markup=managers_list_keyboard)
     else:
-         print(lead_by_id(callback_query.data.split('_')[1]))
+         lead=lead_by_id(callback_query.data.split('_')[1])[0]
+         await bot.edit_message_text(chat_id=callback_query.message.chat.id,
+                                message_id=callback_query.message.message_id,
+                                text=(f"ID: {lead['id']} "
+                                    f"\nКонтактне ім'я: {lead['contact_name']}"
+                                    f"\nНомер телефону: {lead['phone']}."
+                                    f"\nОпис замовлення: {lead['name']}."
+                                    f"\nМенеджер: {lead['user_id'][1]}." 
+                                    f"\nДата створення: {lead['create_date']}."),
+                                    reply_markup=create_lead_keyboard(True))
+
+#прийняття чату з користувачем
+@dp.callback_query_handler(lambda query: query.data.startswith('accept_chat_button'))
+async def accpet_chat_with_user(callback_query: types.CallbackQuery):
+     user_id = callback_query.data.split('_')[3]
+     username = callback_query.data.split('_')[4]
+     print(user_id, username)
+     await bot.edit_message_text(chat_id=callback_query.message.chat.id, 
+                                 message_id=callback_query.message.message_id,
+                                 text=callback_query.message.text+f'\n\n✅Прийнято менеджером\n👉@{callback_query.from_user.username}')
+     await bot.send_message(chat_id=callback_query.from_user.id,
+                            text=f"✅Ви прийняли чат з юзером {callback_query.data.split('_')[3]}\n👉@{callback_query.from_user.username}")
+     await bot.send_message(chat_id=user_id,
+                            text=f"✅Ваший запит прийняв менеджер \n👉@{callback_query.from_user.username}")

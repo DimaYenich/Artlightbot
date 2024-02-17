@@ -2,7 +2,7 @@ from aiogram import types
 from aiogram.dispatcher import FSMContext
 from Utils.utils import *
 from db import change_admin_status, get_user_data
-from Keyboards.UserKeyboard import start_keyboard, registration_keyboard, setting_keyboard, skip_keyboard
+from Keyboards.UserKeyboard import registration_keyboard, setting_keyboard, skip_keyboard, create_main_keyboard
 from Keyboards.AdminKeyboard import admin_settings_keyboard, create_manager_keyboard 
 from Config.config import dp, bot, admin_password
 from States.states import *
@@ -13,7 +13,7 @@ async def start(message: types.Message):
         result = get_user_data(message.from_user.id)
         await message.answer("❗Головне меню:" if result is not None and result[4] else 
                             "Ви ще не зареєстровані. Будь ласка, нажміть кнопку зареєструватись",
-                            reply_markup=start_keyboard if result is not None and result[4] else registration_keyboard)
+                            reply_markup=await create_main_keyboard(get_user_data(message.from_user.id)) if result is not None and result[4] else registration_keyboard)
 
 #Admin password - user
 @dp.message_handler(state=AdminPasswordState.waiting_for_admin_password)
@@ -73,7 +73,7 @@ async def process_email(message: types.Message, state: FSMContext):
         await bot.delete_message(chat_id=message.from_user.id, message_id=message.message_id)
         return
     await state.update_data(email=message.text)
-    await message.answer("Email додано!", reply_markup=start_keyboard)
+    await message.answer("Email додано!", reply_markup=await create_main_keyboard(get_user_data(message.from_user.id)))
     await finish_registration(message, state, name, phone, message.text)
 ##Реєстрація кінець <
 

@@ -1,11 +1,11 @@
-from Keyboards.UserKeyboard import start_keyboard, socialMedia_keyboard
+from Keyboards.UserKeyboard import socialMedia_keyboard, create_main_keyboard
 from db import add_new_user, get_user_data
 import re
 
 
 #Завершення реєстрації
 async def finish_registration(message, state, name, phone, email=None):
-    await message.answer("Дякуємо за реєстрацію! 🙏", reply_markup=start_keyboard)
+    await message.answer("Дякуємо за реєстрацію! 🙏", reply_markup=await create_main_keyboard(get_user_data(message.from_user.id)))
     await message.answer("Слідкуй за нами в соціальних мережах! 👇", reply_markup=socialMedia_keyboard)
     add_new_user(name, format_phone_number(phone), email if email else None, message.from_user.id)
     await state.finish()
