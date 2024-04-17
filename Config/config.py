@@ -8,7 +8,7 @@ load_dotenv(find_dotenv())
 
 url = os.getenv("DATABASE_URL")
 db = os.getenv("DATABASE_NAME")
-username = os.getenv("USERNAME")
+username = os.getenv("DB_USERNAME")
 password = os.getenv("PASSWORD")
 admin_password = os.getenv("ADMIN_PASSWORD")
 manager_password = os.getenv("MANAGER_PASSWORD")
