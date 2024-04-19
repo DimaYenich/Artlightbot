@@ -10,6 +10,7 @@ from States.states import *
 #Команда /start - user
 @dp.message_handler(commands=['start'])
 async def start(message: types.Message):
+        # print(search_manager_list())
         result = get_user_data(message.from_user.id)
         await message.answer("❗Головне меню:" if result is not None and result[4] else 
                             "Ви ще не зареєстровані. Будь ласка, нажміть кнопку зареєструватись",

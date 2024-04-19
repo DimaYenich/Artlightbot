@@ -1,5 +1,4 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
-from Utils.utils import is_admin
 import random
 
 async def accept_chat_keyboard(message):

@@ -1,5 +1,5 @@
 # from Utils.utils import connect_to_odoo 
-from Config.config import url, db, username, password, uid, models
+from Config.config import db, password, uid, models
 from db import get_user_data
 
 #connect

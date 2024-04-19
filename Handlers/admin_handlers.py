@@ -3,7 +3,7 @@ from Keyboards.UserKeyboard import create_lead_keyboard, create_main_keyboard
 from Keyboards.AdminKeyboard import create_list_of_managers_keyboard, create_manager_keyboard, keyboard_with_orders
 from db import change_admin_status, get_user_data
 from main import dp, bot
-from Odoo.odoo import search_manager_list, user_leads, search_manager_list, search_leads_by_chat_id, lead_by_id
+from Odoo.odoo import search_manager_list, user_leads, search_manager_list, lead_by_id
 
 #Вибір менеджера з клавіатури
 @dp.callback_query_handler(lambda query: query.data.startswith('adminButton_'))
@@ -108,6 +108,6 @@ async def accpet_chat_with_user(callback_query: types.CallbackQuery):
                                  message_id=callback_query.message.message_id,
                                  text=callback_query.message.text+f'\n\n✅Прийнято менеджером\n👉@{callback_query.from_user.username}')
      await bot.send_message(chat_id=callback_query.from_user.id,
-                            text=f"✅Ви прийняли чат з юзером {callback_query.data.split('_')[3]}\n👉@{callback_query.from_user.username}")
+                            text=f"✅Ви прийняли чат з юзером \n👉@{callback_query.from_user.username}")
      await bot.send_message(chat_id=user_id,
                             text=f"✅Ваший запит прийняв менеджер \n👉@{callback_query.from_user.username}")

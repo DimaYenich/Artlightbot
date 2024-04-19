@@ -5,9 +5,9 @@ import re
 
 #Завершення реєстрації
 async def finish_registration(message, state, name, phone, email=None):
+    add_new_user(name, format_phone_number(phone), email if email else None, message.from_user.id)
     await message.answer("Дякуємо за реєстрацію! 🙏", reply_markup=await create_main_keyboard(get_user_data(message.from_user.id)))
     await message.answer("Слідкуй за нами в соціальних мережах! 👇", reply_markup=socialMedia_keyboard)
-    add_new_user(name, format_phone_number(phone), email if email else None, message.from_user.id)
     await state.finish()
 
 
